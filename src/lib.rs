@@ -2,4 +2,5 @@
 #[allow(unused_imports)]
 mod aoc1;
 mod aoc2;
+mod aoc3;
 mod utils;
