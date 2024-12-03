@@ -1,4 +1,4 @@
-use crate::utils::read_input;
+use crate::utils::{read_input, bench};
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -72,7 +72,7 @@ mod aoc1 {
     fn actual() {
         let text: Vec<String> = read_input("src/aoc1/input").expect("couldn't read input - aoc1");
         let context = Context::new(text);
-        println!("Part1: {:?}", context.part1());
-        println!("Part2: {:?}", context.part2());
+        println!("Part1: {:?}", bench(|| context.part1(), Some("aoc1: part1")));
+        println!("Part2: {:?}", bench(|| context.part2(), Some("aoc1: part2")));
     }
 }
