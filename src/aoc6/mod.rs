@@ -1,6 +1,7 @@
 use crate::utils::{read_input, bench};
 use std::fmt::{Debug, Formatter, Result};
 use std::cmp::PartialEq;
+use rayon::prelude::*;
 
 #[derive(PartialEq)]
 enum Tile {
@@ -133,14 +134,9 @@ impl Context {
     }
 
     pub fn part2(&self, guard_path: &Vec<(usize, usize)>) -> usize {
-        let mut sum = 0;
-        for (i, j) in guard_path {
-            match self.helper((*i as isize, *j as isize)) {
-                true => sum += 1,
-                false => (),
-            };
-        }
-        sum
+        guard_path.par_iter()
+        .map(|&(i, j)| if self.helper((i as isize, j as isize)) { 1 } else { 0 })
+        .sum()
     }
 }
 
