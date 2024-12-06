@@ -116,14 +116,12 @@ impl Context {
             if self.out_of_bounds(&new_x, &new_y) {
                 return false;
             }   
-            if self.matrix[new_x as usize][new_y as usize] == Tile::Brick || obstruction == (new_x, new_y) {
-                while self.matrix[new_x as usize][new_y as usize] == Tile::Brick || obstruction == (new_x, new_y) {
-                    let tmp = del_x;
-                    del_x = del_y;
-                    del_y = -1 * tmp;
-                    new_x = x + del_x;
-                    new_y = y + del_y;
-                }
+            while self.matrix[new_x as usize][new_y as usize] == Tile::Brick || obstruction == (new_x, new_y) {
+                let tmp = del_x;
+                del_x = del_y;
+                del_y = -1 * tmp;
+                new_x = x + del_x;
+                new_y = y + del_y;
             }
             if (del_x, del_y) == visited[new_x as usize][new_y as usize] {
                 return true;
