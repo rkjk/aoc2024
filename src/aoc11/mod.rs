@@ -8,7 +8,6 @@ type Num = u64;
 #[derive(Debug)]
 struct Context {
     nums: Vec<Num>,
-    cache: HashMap<Num, Vec<Vec<Num>>>,
 }
 
 impl Context {
@@ -18,7 +17,6 @@ impl Context {
                     .split_ascii_whitespace()
                     .map(|v| v.parse::<Num>().unwrap())
                     .collect(),
-            cache: HashMap::new(),
         }
     }
 
@@ -47,33 +45,21 @@ impl Context {
         }
     }
 
-    fn get_blink_size(&mut self, num: Num, blink: usize) -> usize {
-        // If Num is not in cache, e
-
-        let mut cur = match self.cache.contains_key(&num) {
-            false => {
-                self.cache.insert(num, vec![vec![num]]);
-                self.cache.get_mut(&num).unwrap()
-            },
-            true => self.cache.get_mut(&num).unwrap(),
-        };
-        for i in cur.len()..blink + 1 {
-            let mut cur_vec = vec![];
-            for n in cur[i - 1].iter() {
-                cur_vec.extend(Context::process_number(&n));
-            }
-            cur.push(cur_vec);
-        }
-        let l = cur[cur.len() - 1].len();
-        return l;
-    }
-
     pub fn part1(&mut self, blinks: usize) -> usize {
-        let mut sum = 0;
-        for num in self.nums.clone() {
-            sum += self.get_blink_size(num, blinks + 1);
+        let mut map: HashMap<Num, usize> = HashMap::new();
+        for x in self.nums.iter() {
+            map.insert(*x, 1);   
         }
-        sum
+        for i in 0..blinks {
+            let mut new_map = HashMap::new();
+            for (s, n) in map.iter() {
+                for t in Context::process_number(s) {
+                    *new_map.entry(t).or_insert(0) += n;
+                }
+            }
+            map = new_map;
+        }
+        map.values().sum()
     }
 }
 
@@ -88,7 +74,7 @@ mod aoc11 {
         let mut context = Context::new(text);
         //println!("split test: {:?}", context.split_number(&2000));
         println!("context: {:?}", context);
-        let part1 = context.part1(24);
+        let part1 = context.part1(25);
         println!("Part1: {:?}", part1);
         println!("Part2: {:?}", context.part1(75));
     }
@@ -97,8 +83,8 @@ mod aoc11 {
     fn actual() {
         let text: Vec<String> = read_input("src/aoc11/input").expect("couldn't read input - aoc11");
         let mut context = Context::new(text);
-        let part1 = bench(|| context.part1(24), Some("part1"));
-        //println!("Part1: {:?}", part1);
-        //println!("Part2: {:?}", bench(|| context.part1(75), Some("part2")));
+        let part1 = bench(|| context.part1(25), Some("part1"));
+        println!("Part1: {:?}", part1);
+        println!("Part2: {:?}", bench(|| context.part1(75), Some("part2")));
     }
 }
