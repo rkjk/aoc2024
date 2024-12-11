@@ -1,3 +1,5 @@
+#[allow(dead_code)]
+#[allow(unused_imports)]
 use std::fs::File;
 use std::io::{BufRead, BufReader, Error, ErrorKind};
 use std::time;
