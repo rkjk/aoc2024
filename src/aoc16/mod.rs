@@ -1,11 +1,12 @@
 use crate::utils::{read_input, bench};
 use core::num;
 use std::fmt::{write, Debug, Formatter, Result};
-use std::collections::{VecDeque, HashMap, HashSet};
+use std::cmp::Ordering;
+use std::collections::{VecDeque, HashMap, HashSet, BinaryHeap};
 use std::hash::Hash;
 use std::ops::Index;
+use std::usize;
 use rayon::prelude::*;
-use image::{DynamicImage, GrayImage, Pixel};
 
 type Num = i32;
 
@@ -26,12 +27,35 @@ impl Debug for Type {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 struct State {
     pos: Pos,
     m: Pos,
     c: usize,
     visited: Vec<Pos>
+}
+
+impl State {
+    pub fn new(pos: Pos, m: Pos, c: usize, visited: Vec<Pos>) -> Self {
+        State {
+            pos,
+            m,
+            c,
+            visited,
+        }
+    }
+}
+
+impl Ord for State {
+    fn cmp(&self, other: &Self) -> Ordering {
+        other.c.cmp(&self.c)
+    }
+}
+
+impl PartialOrd for State {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 #[derive(Debug)]
@@ -137,82 +161,57 @@ impl Context {
         self.matrix[x.0 as usize][x.1 as usize] == Type::Empty 
     }
 
-    fn dfs(&self, cost: &Vec<Vec<usize>>, pos: Pos, m: Pos, c: usize, visited: &mut Vec<Vec<bool>>) -> HashSet<(usize, usize)> {
-        if pos.0 == self.end.0 && pos.1 == self.end.1 {
-            if c != cost[pos.0 as usize][pos.1 as usize] {
-                return HashSet::new();
-            }
-            let mut set = HashSet::new();
-            for i in 0..visited.len() {
-                for j in 0..visited[0].len() {
-                    if visited[i][j] {
-                        set.insert((i, j));
-                    }
-                }
-            }
-            println!("Length: {}", set.len() + 1);
-            return set;
-        }
-        let posu = (pos.0 as usize, pos.1 as usize);
-        if cost[posu.0][posu.1] > c || visited[posu.0][posu.1] || c >= cost[self.end.0 as usize][self.end.1 as usize] {
-            return HashSet::new();
-        }
-        println!("Current node: {:?}", pos);
-        visited[posu.0][posu.1] = true;
-        let n1 = (pos.0 + m.0, pos.1 + m.1);
-        let mut set = HashSet::new();
-        if self.not_block(&n1) {
-            set.extend(self.dfs(cost, n1, m, c + 1, visited).into_iter());
-        }
-        let m2 = self.get_move_clockwise(&m);
-        let n2 = (pos.0 + m2.0, pos.1 + m2.1);
-        if self.not_block(&n2) {
-            set.extend(self.dfs(cost, n2, m2, c + 1001, visited).into_iter());
-       
-        }
-        let m3 = self.get_move_anticlockwise(&m);
-        let n3 = (pos.0 + m3.0, pos.1 + m3.1);
-        if self.not_block(&n3) {
-            set.extend(self.dfs(cost, n3, m3, c + 1001, visited).into_iter());
-       
-        }
-        visited[posu.0][posu.1] = false;
-        set
-    }
-
-    pub fn part2(&self, cost: &Vec<Vec<usize>>) -> usize {
-        //let mut visited = vec![vec![false; self.matrix[0].len()]; self.matrix.len()];
-        // let set = self.dfs(cost, self.start, (0, 1), 0, &mut visited);
-        // set.len() + 1
-        let mut q: VecDeque<((i32, i32), (i32, i32), usize, Vec<Pos>)> = VecDeque::new();
-        q.push_back((self.start, self.moves[0], 0 as usize, vec![]));
-        let mut set = HashSet::new();
+    // Dijkstra
+    pub fn part2(&self, cost1: &Vec<Vec<usize>>) -> usize {
+        let mut cost: HashMap<(Pos, Pos), usize> = HashMap::default();
+        let mut q: BinaryHeap<State> = BinaryHeap::new();
+        q.push(State::new(self.start, self.moves[0], 0 as usize, vec![]));
+        let mut min_cost = usize::MAX;
+        let mut vec = vec![];
         while !q.is_empty() {
-            let (pos, m, c, mut visited) = q.pop_front().unwrap();
-            let posu = (pos.0 as usize, pos.1 as usize);
+            let State{ pos, m, c, mut visited} = q.pop().unwrap();
+            // Reached End
             if pos.0 == self.end.0 && pos.1 == self.end.1 {
-                for v in visited {
-                    set.insert(v);
+                if c > min_cost {
+                    continue;
                 }
-                continue;
+                if c < min_cost {
+                    vec.clear();
+                }
+                min_cost = c;
+                vec.push(visited.clone());
             }
-            if c >= cost[posu.0][posu.1] + 7000 || c > cost[self.end.0 as usize][self.end.1 as usize] {
-                continue;
-            }
+            cost.insert((pos, m), c);
+            
             let n1 = (pos.0 + m.0, pos.1 + m.1);
             visited.push(pos);
             if self.not_block(&n1) {
-                q.push_back((n1, m, c + 1, visited.clone()));
+                let exist_c = cost.entry((n1, m)).or_insert(usize::MAX);
+                if c + 1 <= *exist_c {
+                    q.push(State::new(n1, m, c + 1, visited.clone()));
+                }
             }
             let m2 = self.get_move_clockwise(&m);
             let n2 = (pos.0 + m2.0, pos.1 + m2.1);
             if self.not_block(&n2) {
-                q.push_back((n2, m2, c + 1001, visited.clone()));
+                let exist_c = cost.entry((n2, m2)).or_insert(usize::MAX);
+                if c + 1001 <= *exist_c {
+                    q.push(State::new(n2, m2, c + 1001, visited.clone()));
+                }
             }
             let m3 = self.get_move_anticlockwise(&m);
             let n3 = (pos.0 + m3.0, pos.1 + m3.1);
             if self.not_block(&n3) {
-                q.push_back((n3, m3, c + 1001, visited.clone()));
+                let exist_c = cost.entry((n3, m3)).or_insert(usize::MAX);
+                if c + 1001 <= *exist_c {
+                    q.push(State::new(n3, m3, c + 1001, visited.clone()));
+                }
+            }
+        }
+        let mut set = HashSet::new();
+        for v in vec {
+            for i in v {
+                set.insert(i);
             }
         }
         set.len() + 1
