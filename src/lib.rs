@@ -1,3 +1,4 @@
+#![allow(warnings)]
 #[allow(dead_code)]
 #[allow(unused_imports)]
 mod utils;
@@ -17,3 +18,5 @@ mod aoc13;
 mod aoc14;
 mod aoc15;
 mod aoc16;
+
+mod aoc17;
